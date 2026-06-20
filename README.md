@@ -18,7 +18,6 @@ This bot is built with a modular command architecture, making it easy to add or 
     *   `danbooru`: Fetches high-quality images from Danbooru via tags and direct links.
 *   **⚙️ Utility**
     *   `resend`: Extracts and resends "View Once" media or messages.
-    *   `tag`: Mentions or tags members in a group.
 
 ## 🛠️ Tech Stack & Requirements
 
@@ -33,8 +32,8 @@ This bot is built with a modular command architecture, making it easy to add or 
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
-   cd simple-whatsapp-bot
+   git clone https://github.com/Tederby/wa-bot.git
+   cd wa-bot
    ```
 
 2. **Install Node.js dependencies:**
@@ -93,7 +92,7 @@ You can edit the `setting.js` file to change bot prefixes, owner number, bot nam
 // setting.js
 const setting = {
     name: "Tederby18",
-    owner: "6285157729639",
+    owner: "6287825136146",
     prefixes: ["!", ".", "#", "/", "-"],
     // ...other configurations (ytdlp settings, max file sizes, etc.)
 };
