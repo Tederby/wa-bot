@@ -1,5 +1,5 @@
 const setting = {
-    name: "SΛNSΞKΛI",
+    name: "Tederby18",
     owner: "6285157729639",
     prefixes: ["!", ".", "#", "/", "-"],
     ytdlp: {

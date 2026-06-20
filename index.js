@@ -63,21 +63,34 @@ async function connectToWhatsApp() {
 
             console.log(`session | Closed connection, status: ${reason} (${status})`);
             
-            switch (reason) {
-        case "multideviceMismatch":
-        case "loggedOut":
-          console.error(lastDisconnect.error);
-          fs.rmSync(`./session`, { recursive: true, force: true });
-          break;
-        default:
-        if (status === 403) {
-          console.error(lastDisconnect.error);
-          fs.rmSync(`./session`, { recursive: true, force: true });
-          } else {
-          console.error(lastDisconnect.error?.message);
-          connectToWhatsApp();
-          }
-      }
+            if (lastDisconnect?.error) {
+                console.error(`session | Error details:`, lastDisconnect.error?.message || lastDisconnect.error);
+            }
+            
+            // Kondisi di mana sesi sudah tidak bisa diselamatkan
+            const isUnrecoverable = 
+                reason === "loggedOut" || 
+                reason === "multideviceMismatch" || 
+                status === 403 || 
+                status === 401;
+
+            if (isUnrecoverable) {
+                console.log(`session | Sesi tidak bisa diselamatkan (${reason || status}). Menghapus folder session...`);
+                try {
+                    if (fs.existsSync(`./session`)) {
+                        fs.rmSync(`./session`, { recursive: true, force: true });
+                        console.log(`session | Folder session berhasil dihapus.`);
+                    }
+                } catch (err) {
+                    console.error(`session | Gagal menghapus folder session:`, err.message);
+                }
+                // Memulai ulang agar muncul QR Code baru
+                console.log(`session | Memulai ulang untuk generate QR Code baru...`);
+                connectToWhatsApp();
+            } else {
+                console.log(`session | Mencoba reconnect...`);
+                connectToWhatsApp();
+            }
 
         } else if (connection === 'open') {
             console.log(`session Connected: ${jidDecode(sock?.user?.id)?.user}`);

@@ -1,0 +1,67 @@
+import { Sticker, StickerTypes } from 'wa-sticker-formatter';
+import { downloadContentFromMessage } from 'baileys';
+import setting from '../setting.js';
+
+export default {
+    name: 'sticker',
+    aliases: ['s', 'stiker'],
+    description: 'Membuat stiker dari gambar atau video pendek',
+    async handler({ message, sock }) {
+        try {
+            // Check original message media
+            let isMedia = false;
+            let isQuotedMedia = false;
+            
+            if (message.message?.imageMessage || message.message?.videoMessage) {
+                isMedia = true;
+            }
+            if (message.quoted?.message?.imageMessage || message.quoted?.message?.videoMessage) {
+                isQuotedMedia = true;
+            }
+
+            const targetMsg = isQuotedMedia ? message.quoted : (isMedia ? message : null);
+
+            if (!targetMsg) {
+                return await message.reply('❌ Kirim gambar/video dengan caption *!s* atau balas (reply) media yang sudah ada.');
+            }
+
+            const isVideo = !!targetMsg.message?.videoMessage;
+            const mediaMessage = targetMsg.message?.imageMessage || targetMsg.message?.videoMessage;
+
+            if (!mediaMessage) {
+                return await message.reply('❌ Format media tidak didukung. Harap kirim gambar, video pendek, atau GIF.');
+            }
+
+            // Verify video duration
+            if (isVideo && mediaMessage.seconds && mediaMessage.seconds > 10) {
+                return await message.reply('❌ Video terlalu panjang. Maksimal 10 detik.');
+            }
+
+            await message.reply('⏳ Sedang membuat stiker...');
+
+            // Download media natively using baileys
+            const stream = await downloadContentFromMessage(mediaMessage, isVideo ? 'video' : 'image');
+            let buffer = Buffer.from([]);
+            for await (const chunk of stream) {
+                buffer = Buffer.concat([buffer, chunk]);
+            }
+
+            // Build sticker
+            const sticker = new Sticker(buffer, {
+                pack: setting.name || 'Bot Stiker',
+                author: 'WhatsApp Bot',
+                type: StickerTypes.FULL,
+                quality: 70
+            });
+
+            const stickerBuffer = await sticker.toBuffer();
+
+            // Send sticker message
+            await sock.sendMessage(message.chat, { sticker: stickerBuffer }, { quoted: message });
+
+        } catch (error) {
+            console.error('[ERROR STICKER]', error);
+            await message.reply('❌ Terjadi kesalahan saat membuat stiker. Silakan coba lagi nanti.');
+        }
+    }
+};

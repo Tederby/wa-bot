@@ -9,7 +9,7 @@ Sebuah base bot WhatsApp yang sederhana namun scalable, dibangun menggunakan pus
 - **Danbooru Integration (`danbooru`):** Dapat mencari gambar dari Danbooru atau mendeteksi link Danbooru secara otomatis pada chat untuk langsung mengirimkan gambarnya. Dilengkapi dengan proteksi NSFW/Explicit.
 - **Auto Reject Call:** Otomatis menolak panggilan suara atau video yang masuk untuk menjaga koneksi bot tetap stabil.
 - **Self-Trigger:** Perintah bisa dijalankan langsung dari nomor owner (perangkat tertaut).
-- **Basic Commands:** Terdapat command dasar seperti `ping`, `say`, `tag` (mention all di grup), dan `resend`.
+- **Basic Commands:** Terdapat command dasar seperti `ping`, `say`, dan `resend`.
 
 ## 📋 Persyaratan Sistem
 
