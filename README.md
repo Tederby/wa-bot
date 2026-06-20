@@ -1,73 +1,103 @@
-# Simple WhatsApp Bot (SΛNSΞKΛI)
+# 🤖 Simple WhatsApp Bot
 
-Sebuah base bot WhatsApp yang sederhana namun scalable, dibangun menggunakan pustaka [@whiskeysockets/baileys](https://github.com/WhiskeySockets/Baileys) dan Node.js. Bot ini dirancang agar mudah dikembangkan dan dimodifikasi untuk proyek pribadi maupun publik.
+A fast, modular, and lightweight WhatsApp bot built with Node.js and the powerful [`@whiskeysockets/baileys`](https://github.com/WhiskeySockets/Baileys) library. This project is intended for personal use, providing a robust base to build custom WhatsApp automation while remaining open-source for others to clone and explore.
 
-## ✨ Fitur Utama
+## ✨ Features
 
-- **Modular & Auto-Reload:** Menggunakan sistem handler yang dimonitor oleh `chokidar`. Kamu bisa mengedit atau menambahkan command tanpa perlu me-restart bot.
-- **YouTube Downloader (`ytdl` & `ytdlf`):** Integrasi tingkat lanjut dengan `yt-dlp` yang mendukung antrean unduhan (queue), auto-cleanup file sementara, pemilihan resolusi, dan caching.
-- **Danbooru Integration (`danbooru`):** Dapat mencari gambar dari Danbooru atau mendeteksi link Danbooru secara otomatis pada chat untuk langsung mengirimkan gambarnya. Dilengkapi dengan proteksi NSFW/Explicit.
-- **Auto Reject Call:** Otomatis menolak panggilan suara atau video yang masuk untuk menjaga koneksi bot tetap stabil.
-- **Self-Trigger:** Perintah bisa dijalankan langsung dari nomor owner (perangkat tertaut).
-- **Basic Commands:** Terdapat command dasar seperti `ping`, `say`, dan `resend`.
+This bot is built with a modular command architecture, making it easy to add or remove features. Current built-in commands include:
 
-## 📋 Persyaratan Sistem
+*   **📱 Core**
+    *   `menu` (`help`, `list`): Displays all available bot commands dynamically.
+    *   `ping`: Checks bot response time and server status.
+    *   `say`: Makes the bot repeat your message.
+*   **🎨 Media & Creation**
+    *   `sticker` (`s`, `stiker`): Converts images/videos into WhatsApp stickers.
+    *   `toimg` (`ti`): Converts static stickers back into images.
+*   **📥 Downloader**
+    *   `ytdl` / `ytdlf`: Robust YouTube and general media downloading via `yt-dlp` integration (supports formats and queues).
+    *   `danbooru`: Fetches high-quality images from Danbooru via tags and direct links.
+*   **⚙️ Utility**
+    *   `resend`: Extracts and resends "View Once" media or messages.
+    *   `tag`: Mentions or tags members in a group.
 
-- **Node.js** (Disarankan versi 18 ke atas)
-- **FFmpeg** (Dibutuhkan oleh Baileys untuk pemrosesan media/stiker)
-- **yt-dlp** (Wajib diinstal dan ditambahkan ke system PATH jika ingin menggunakan fitur `ytdl`)
+## 🛠️ Tech Stack & Requirements
 
-## 🚀 Cara Instalasi
+*   **Runtime:** Node.js (v16+ recommended)
+*   **Library:** `@whiskeysockets/baileys`
+*   **Key Dependencies:** `axios`, `wa-sticker-formatter`
+*   **External Requirements:** 
+    *   [FFmpeg](https://ffmpeg.org/) (Required for sticker creation and media conversion)
+    *   [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Required for downloading media via `ytdl` commands)
 
-1. **Clone repositori ini** (jika menggunakan Git) atau unduh dan ekstrak source code.
+## 🚀 Installation & Setup
+
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Tederby/wa-bot.git
-   cd wa-bot
+   git clone <repository-url>
+   cd simple-whatsapp-bot
    ```
 
-2. **Instal dependensi**
+2. **Install Node.js dependencies:**
    ```bash
    npm install
    ```
 
-3. **Konfigurasi Bot**
-   Buka file `setting.js` dan sesuaikan konfigurasinya:
-   ```javascript
-   const setting = {
-       name: "SΛNSΞKΛI", // Nama Bot
-       owner: "6285157729639", // Ganti dengan nomor WhatsApp kamu (tanpa +, gunakan 62)
-       prefixes: ["!", ".", "#", "/", "-"], // Prefix yang ingin digunakan
-       ytdlp: {
-           // ... konfigurasi yt-dlp lainnya
-       }
-   };
-   ```
+3. **Install System Dependencies (Important):**
+   Make sure you have `ffmpeg` and `yt-dlp` installed and added to your system's PATH.
 
-4. **Jalankan Bot**
+4. **Start the bot:**
    ```bash
    npm start
    ```
 
-5. **Scan QR Code**
-   Saat pertama kali dijalankan, bot akan memunculkan QR Code di terminal. Buka aplikasi WhatsApp kamu > Perangkat Tertaut (Linked Devices) > Tautkan Perangkat, lalu scan QR Code tersebut. Sesi akan tersimpan secara otomatis di folder `./session`.
+5. **Link to WhatsApp:**
+   Upon running the bot for the first time, a QR code will be generated in the terminal. Open WhatsApp on your phone, go to **Linked Devices**, and scan the QR code. The session will be saved in the `session/` folder for subsequent logins.
 
-## 📂 Struktur Direktori
+## 📂 Project Structure
 
-- `index.js` - Titik masuk (entry point) utama untuk koneksi Baileys.
-- `handler.js` - Pusat pemrosesan pesan (message router) yang mendukung auto-reload.
-- `setting.js` - File konfigurasi global bot.
-- `commands/` - Tempat kamu meletakkan script command baru. Semua file di sini akan diregistrasi otomatis.
-- `lib/` - Kumpulan utilitas, parser, dan helper untuk mempermudah pembuatan bot.
-- `services/` - Service background, seperti antrean `yt-dlp` dan script pembersih file sementara (cleanup).
-- `temp/` - Folder penyimpanan file sementara (media).
+```text
+simple-whatsapp-bot/
+├── commands/       # Modular command files (each handles a specific feature)
+│   ├── _registry.js# Dynamic command loader
+│   └── ...         # Command files (.js)
+├── lib/            # Core library, message wrappers, and utilities
+├── services/       # External API services or specific heavy logic
+├── session/        # WhatsApp authentication session data (Auto-generated)
+├── temp/           # Temporary folder for media processing (Auto-generated)
+├── index.js        # Main application entry point
+├── handler.js      # Global message interception and routing logic
+├── setting.js      # Global configuration (Owner number, prefixes, limits)
+└── package.json    # Project metadata and dependencies
+```
 
-## 🛠️ Cara Menambahkan Command Baru
+## 🧑‍💻 Creating New Commands
 
-Untuk menambah fitur, kamu cukup membuat file JavaScript baru di dalam folder `commands/`. Gunakan struktur modular sederhana yang meregister fungsi handler dari `_registry.js`. Pastikan untuk me-restart bot jika menambah file baru, atau bot akan otomatis memuat ulang jika kamu hanya mengedit file yang sudah ada (tergantung setup chokidar di sistemmu).
+Adding a new command is as simple as creating a new `.js` file inside the `commands/` directory. The bot uses an auto-loader (`_registry.js`) to register commands on startup.
 
-## 🤝 Lisensi & Kontribusi
+**Example `commands/hello.js`:**
+```javascript
+export default {
+    name: "hello",
+    aliases: ["hi", "greet"],
+    description: "Sends a greeting message",
+    async handler({ message }) {
+        await message.reply("Hello there! 👋");
+    }
+};
+```
 
-Bot ini awalnya dibuat untuk proyek pribadi, namun bersifat *open-source*. Siapapun bebas untuk meng-clone, memodifikasi, dan mengembangkannya sesuai kebutuhan.
+## ⚙️ Configuration
+You can edit the `setting.js` file to change bot prefixes, owner number, bot name, and temporary file configurations (like download size limits and intervals).
 
----
-*Dibuat dengan ❤️ dan Node.js*
+```javascript
+// setting.js
+const setting = {
+    name: "Tederby18",
+    owner: "6285157729639",
+    prefixes: ["!", ".", "#", "/", "-"],
+    // ...other configurations (ytdlp settings, max file sizes, etc.)
+};
+```
+
+## 📝 License
+This project is open-sourced under the [MIT License](LICENSE).
