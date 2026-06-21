@@ -87,11 +87,26 @@ export default {
             });
 
         } catch (err) {
-            console.error("Anime Command Error:", err.message);
+            let errorMsg = err.message || "Unknown error";
+            if (err.response) {
+                // Server merespon dengan status code selain 2xx
+                errorMsg = `HTTP ${err.response.status}: ${err.response.statusText}`;
+                console.error("Anime Command Error (Response):", errorMsg, err.response.data);
+            } else if (err.request) {
+                // Request terkirim tapi tidak ada respon (timeout/network error)
+                console.error("Anime Command Error (Request):", errorMsg);
+            } else {
+                console.error("Anime Command Error:", err);
+            }
+
             if (err.code === 'ETIMEDOUT' || err.code === 'ECONNABORTED') {
                 await message.reply(`❌ Server MyAnimeList (Jikan API) sedang sibuk atau down. Silakan coba beberapa saat lagi.`);
+            } else if (err.response && err.response.status === 403) {
+                await message.reply(`❌ Akses ditolak oleh API Jikan (403 Forbidden). Ini sering terjadi jika IP server/VPS diblokir oleh sistem keamanan mereka (Cloudflare).`);
+            } else if (err.response && err.response.status === 429) {
+                await message.reply(`❌ Terlalu banyak request ke Jikan API (429 Rate Limit). Mohon tunggu beberapa saat.`);
             } else {
-                await message.reply(`❌ Terjadi kesalahan saat mencari anime: ${err.message}`);
+                await message.reply(`❌ Terjadi kesalahan saat mencari anime: ${errorMsg}`);
             }
         }
     }
