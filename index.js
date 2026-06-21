@@ -25,7 +25,10 @@ import Pino from "pino";
 import chokidar from "chokidar";
 import { Messages } from "./lib/Messages.js";
 import { initCleanup } from "./services/cleanup.js";
-import { reloadCommand, commandsDir } from "./commands/_registry.js";
+import { reloadCommand, initCommands, commandsDir } from "./commands/_registry.js";
+
+// ── Initialize command registry (must happen after all static imports settle) ─
+await initCommands();
 
 // ── Dynamic handler (supports hot-reload) ───────────────────────────────────
 let { msgHandler } = await import("./handler.js");

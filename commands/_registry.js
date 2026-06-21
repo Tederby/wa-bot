@@ -47,27 +47,8 @@ function register(cmd) {
 }
 
 /**
- * Auto-load all command modules from the current directory.
- * Skips files starting with "_" (like this registry file).
- */
-async function loadCommands() {
-    const files = fs.readdirSync(__dirname)
-        .filter((f) => f.endsWith(".js") && !f.startsWith("_"));
-
-    for (const file of files) {
-        await loadSingleFile(file);
-    }
-
-    const unique = [...new Set(commands.values())];
-    console.log(
-        color("[REGISTRY]"),
-        `Loaded ${unique.length} command(s): ${unique.map((c) => c.name).join(", ")}`
-    );
-}
-
-/**
- * Load (or reload) a single command file.
- * Uses cache-busting to force Node.js to re-evaluate the module.
+ * Load a single command file (initial load — no cache-bust).
+ * Uses the plain file URL so Node.js resolves circular imports normally.
  *
  * @param {string} file - Filename (e.g. "ping.js")
  * @returns {Promise<string|null>} Command name if successful, null if failed
@@ -75,7 +56,34 @@ async function loadCommands() {
 async function loadSingleFile(file) {
     try {
         const absPath = path.join(__dirname, file);
-        // Cache-bust: append timestamp query so Node doesn't serve the old module
+        const fileUrl = pathToFileURL(absPath).href;
+        const mod = await import(fileUrl);
+        const cmd = mod.default;
+
+        if (cmd && cmd.name && typeof cmd.handler === "function") {
+            register(cmd);
+            return cmd.name;
+        } else {
+            console.warn(color("[REGISTRY]", "yellow"), `Skipped ${file}: missing name or handler`);
+            return null;
+        }
+    } catch (err) {
+        console.error(color("[REGISTRY]", "red"), `Failed to load ${file}:`, err.message);
+        return null;
+    }
+}
+
+/**
+ * Hot-reload a single command file (with cache-bust).
+ * The ?t= query forces Node.js to re-evaluate the module instead of
+ * returning the cached version.
+ *
+ * @param {string} file - Filename (e.g. "ping.js")
+ * @returns {Promise<string|null>} Command name if successful, null if failed
+ */
+async function hotLoadSingleFile(file) {
+    try {
+        const absPath = path.join(__dirname, file);
         const fileUrl = pathToFileURL(absPath).href + `?t=${Date.now()}`;
         const mod = await import(fileUrl);
         const cmd = mod.default;
@@ -93,8 +101,25 @@ async function loadSingleFile(file) {
     }
 }
 
-// Load on import
-await loadCommands();
+/**
+ * Initialize the command registry by loading all command files.
+ * Must be called from index.js AFTER all static imports have settled
+ * to avoid circular dependency deadlocks.
+ */
+export async function initCommands() {
+    const files = fs.readdirSync(__dirname)
+        .filter((f) => f.endsWith(".js") && !f.startsWith("_"));
+
+    for (const file of files) {
+        await loadSingleFile(file);
+    }
+
+    const unique = [...new Set(commands.values())];
+    console.log(
+        color("[REGISTRY]"),
+        `Loaded ${unique.length} command(s): ${unique.map((c) => c.name).join(", ")}`
+    );
+}
 
 // ── Hot-Reload API ──────────────────────────────────────────────────────────
 
@@ -111,7 +136,8 @@ export async function reloadCommand(absPath) {
     // Don't reload this registry file itself
     if (file.startsWith("_") || !file.endsWith(".js")) return false;
 
-    const cmdName = await loadSingleFile(file);
+    // Use cache-busted import so Node re-evaluates the module
+    const cmdName = await hotLoadSingleFile(file);
     if (cmdName) {
         console.log(
             color("[HOT-RELOAD]", "yellow"),
@@ -120,29 +146,6 @@ export async function reloadCommand(absPath) {
         return true;
     }
     return false;
-}
-
-/**
- * Unregister a command by filename.
- * Called when a command file is deleted.
- *
- * @param {string} absPath - Absolute path to the removed .js file
- */
-export function unregisterByFile(absPath) {
-    const file = path.basename(absPath);
-    if (file.startsWith("_") || !file.endsWith(".js")) return;
-
-    // Find the command whose source file matches
-    // We need to check all unique commands
-    for (const cmd of new Set(commands.values())) {
-        // We don't track source files, so we'll just log a warning
-        // Commands will be cleaned up on next full restart
-    }
-
-    console.log(
-        color("[HOT-RELOAD]", "yellow"),
-        `File ${file} removed — command will be unavailable after restart`
-    );
 }
 
 /** The absolute path to the commands directory (for watchers). */
