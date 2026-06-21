@@ -31,23 +31,5 @@ export default {
             },
             { quoted: message }
         );
-
-        // Opsional: Kirim juga sebagai kontak vCard agar mudah di-save
-        const vcards = setting.owner.map((num, index) => {
-            return {
-                vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:Owner ${index + 1} (${setting.name})\nTEL;type=CELL;type=VOICE;waid=${num}:+${num}\nEND:VCARD`
-            };
-        });
-
-        await sock.sendMessage(
-            message.chat,
-            {
-                contacts: {
-                    displayName: `${setting.owner.length} Kontak Owner`,
-                    contacts: vcards
-                }
-            },
-            { quoted: message }
-        );
     }
 };
