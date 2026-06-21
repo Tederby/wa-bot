@@ -6,6 +6,7 @@ const CATEGORY_LABELS = {
     utility: "🔧 Utility",
     media: "🖼️ Media",
     download: "📥 Download",
+    search: "🔎 Search",
     anime: "🎌 Anime",
     admin: "🔑 Admin",
     owner: "👑 Owner"
