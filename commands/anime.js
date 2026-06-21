@@ -56,7 +56,9 @@ export default {
         }
 
         try {
-            const response = await axios.get(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=20`);
+            const response = await axios.get(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=20`, {
+                timeout: 15000 // Timeout 15 detik agar bot tidak menggantung lama
+            });
             
             if (!response.data || !response.data.data || response.data.data.length === 0) {
                 await message.reply(`❌ Anime dengan kata kunci *${query}* tidak ditemukan di database.`);
@@ -85,8 +87,12 @@ export default {
             });
 
         } catch (err) {
-            console.error("Anime Command Error:", err);
-            await message.reply(`❌ Terjadi kesalahan saat mencari anime: ${err.message}`);
+            console.error("Anime Command Error:", err.message);
+            if (err.code === 'ETIMEDOUT' || err.code === 'ECONNABORTED') {
+                await message.reply(`❌ Server MyAnimeList (Jikan API) sedang sibuk atau down. Silakan coba beberapa saat lagi.`);
+            } else {
+                await message.reply(`❌ Terjadi kesalahan saat mencari anime: ${err.message}`);
+            }
         }
     }
 };
