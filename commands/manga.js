@@ -38,8 +38,8 @@ function generateListText(results, page, query) {
     });
 
     text += generatePaginator(page, totalPages) + "\n\n";
-    text += `_Reply angka atau huruf untuk "memilih"._\n`;
-    text += `_Contoh: "n" untuk page berikutnya_`;
+    text += `_Reply angka (1, 2, 3, ...) untuk "memilih"._\n`;
+    text += `_"n" untuk next, "b" untuk back._`;
 
     return text.trim();
 }
