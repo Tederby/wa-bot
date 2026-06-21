@@ -185,7 +185,13 @@ async function sendSteamDetail(appId, message, sock) {
         const developers = game.developers ? game.developers.join(", ") : "N/A";
         const publishers = game.publishers ? game.publishers.join(", ") : "N/A";
         const metacritic = game.metacritic ? game.metacritic.score : "N/A";
-        const supportedLanguages = game.supported_languages ? game.supported_languages.replace(/<[^>]*>?/gm, '') : "N/A";
+        let supportedLanguages = "N/A";
+        if (game.supported_languages) {
+            supportedLanguages = game.supported_languages
+                .replace(/<[^>]*>?/gm, '')
+                .replace(/bahasa dengan dukungan audio penuh/gi, '\n\n_* = Dukungan audio penuh_')
+                .replace(/languages with full audio support/gi, '\n\n_* = Full audio support_');
+        }
 
         let priceText = "Gratis";
         if (game.is_free) {
@@ -206,7 +212,7 @@ async function sendSteamDetail(appId, message, sock) {
         const genres = game.genres ? game.genres.map(g => g.description).join(", ") : "N/A";
         const headerImage = game.header_image || game.capsule_image;
 
-        let captionText = `🎮 *${name}*\n`;
+        let captionText = `🎮 *${name}*\n\n`;
         captionText += `🔗 *Link Steam:* https://store.steampowered.com/app/${appId}\n\n`;
         captionText += `🏷️ *Genre:* ${genres}\n`;
         captionText += `📅 *Rilis:* ${releaseDate}\n`;

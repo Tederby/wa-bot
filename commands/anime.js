@@ -205,7 +205,7 @@ async function sendAnimeDetail(anime, message, sock) {
         imageUrl = anime.images.jpg.image_url;
     }
 
-    let captionText = `🎌 *${title}*${titleEng}\n`;
+    let captionText = `🎌 *${title}*${titleEng}\n\n`;
     captionText += `🔗 *MyAnimeList:* ${url}\n\n`;
     captionText += `⭐ *Score:* ${score}\n`;
     captionText += `🏆 *Rank:* #${rank} | 📈 *Popularity:* #${popularity}\n`;
