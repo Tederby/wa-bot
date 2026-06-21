@@ -31,7 +31,7 @@ export default {
     category: "anime",
     description: "Mencari daftar Manga / Light Novel dari MyAnimeList",
     usage: "!manga <judul manga/LN>",
-    async handler({ message, args, sock }) {
+    async handler({ message, args, sock, sender }) {
         if (args.length === 0) {
             await message.reply("❌ Berikan judul manga atau light novel yang ingin dicari.\nContoh: `!manga solo leveling`\n\n💡 *Tip:* Tambahkan `-1` atau `--top` untuk langsung mendapatkan hasil paling relevan tanpa memilih list. Contoh: `!manga solo leveling -1`");
             return;
@@ -86,7 +86,7 @@ export default {
                 results,
                 page: 0,
                 query,
-                userId: message.sender,
+                userId: sender,
                 messageKey: sentMsg.key,
                 commandName: "manga"
             });

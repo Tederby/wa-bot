@@ -31,7 +31,7 @@ export default {
     category: "anime",
     description: "Mencari daftar anime dari MyAnimeList",
     usage: "!anime <judul>",
-    async handler({ message, args, sock }) {
+    async handler({ message, args, sock, sender }) {
         if (args.length === 0) {
             await message.reply("❌ Berikan judul anime yang ingin dicari.\nContoh: `!anime naruto`\n\n💡 *Tip:* Tambahkan `-1` atau `--top` untuk langsung mendapatkan hasil paling relevan tanpa memilih list. Contoh: `!anime naruto -1`");
             return;
@@ -86,7 +86,7 @@ export default {
                 results,
                 page: 0,
                 query,
-                userId: message.sender,
+                userId: sender,
                 messageKey: sentMsg.key,
                 commandName: "anime"
             });
