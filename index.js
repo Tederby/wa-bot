@@ -1,107 +1,135 @@
+/**
+ * Entry Point — WhatsApp Bot
+ *
+ * Responsibilities:
+ *  1. Initialize Baileys connection
+ *  2. Handle connection lifecycle (QR, reconnect, session cleanup)
+ *  3. Route incoming messages and events
+ *  4. Hot-reload handler + commands on file changes
+ */
+
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 import fs from "fs";
 import {
-  makeWASocket,
-  fetchLatestBaileysVersion,
-  DisconnectReason,
-  useMultiFileAuthState,
-  makeCacheableSignalKeyStore,
-  isJidBroadcast,
-  jidDecode,
-  Browsers
+    makeWASocket,
+    fetchLatestBaileysVersion,
+    DisconnectReason,
+    useMultiFileAuthState,
+    makeCacheableSignalKeyStore,
+    jidDecode,
+    Browsers
 } from "baileys";
-import qrcode from "qrcode-terminal"
+import qrcode from "qrcode-terminal";
 import Pino from "pino";
-import { msgHandler as initialMsgHandler } from "./handler.js";
-let msgHandler = initialMsgHandler;
-import moment from "moment-timezone";
-import "./handler.js";
-moment.tz.setDefault("Asia/Jakarta").locale("id");
 import chokidar from "chokidar";
 import { Messages } from "./lib/Messages.js";
 import { initCleanup } from "./services/cleanup.js";
+import { reloadCommand, commandsDir } from "./commands/_registry.js";
 
-// Start cleanup service (temp files, expired states, cache)
+// ── Dynamic handler (supports hot-reload) ───────────────────────────────────
+let { msgHandler } = await import("./handler.js");
+
+// ── Start services ──────────────────────────────────────────────────────────
 initCleanup();
 
-// Baileys
-const logger = Pino({
-    level: "silent"
-});
+// ── Baileys logger ──────────────────────────────────────────────────────────
+const logger = Pino({ level: "silent" });
+
+// ── Connection ──────────────────────────────────────────────────────────────
 
 async function connectToWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState(`./session`);
-  const { version } = await fetchLatestBaileysVersion();
-  const sock = makeWASocket({
-     auth: {
-       creds: state.creds,
-       keys: makeCacheableSignalKeyStore(state.keys, logger),
-     },
-     retryRequestDelayMs: 300,
-     maxMsgRetryCount: 10,
-     version: version,
-     logger: logger,  
-     markOnlineOnConnect: true,
-     generateHighQualityLinkPreview: true,
-     browser: Browsers.macOS('Chrome')
-   });
+    const { state, saveCreds } = await useMultiFileAuthState("./session");
+    const { version } = await fetchLatestBaileysVersion();
 
-  sock.ev.process(async (ev) => {
-    if (ev["connection.update"]) {
-      const update = ev["connection.update"];
-      const { connection, lastDisconnect } = update;
-      const status = lastDisconnect?.error?.output?.statusCode;
-      // console.log(update.qr);
-      if (update.qr) {
-        qrcode.generate(update.qr, {small: true}, function (qrcode) {
-          console.log(qrcode)
-      });
-    }
+    const sock = makeWASocket({
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, logger),
+        },
+        retryRequestDelayMs: 300,
+        maxMsgRetryCount: 10,
+        version,
+        logger,
+        markOnlineOnConnect: true,
+        generateHighQualityLinkPreview: true,
+        browser: Browsers.macOS("Chrome"),
+    });
 
-        if (connection === 'close') {
-            const reason = Object.entries(DisconnectReason).find(i => i[1] === status)?.[0] || 'unknown';
-
-            console.log(`session | Closed connection, status: ${reason} (${status})`);
-            
-            if (lastDisconnect?.error) {
-                console.error(`session | Error details:`, lastDisconnect.error?.message || lastDisconnect.error);
-            }
-            
-            // Kondisi di mana sesi sudah tidak bisa diselamatkan
-            const isUnrecoverable = 
-                reason === "loggedOut" || 
-                reason === "multideviceMismatch" || 
-                status === 403 || 
-                status === 401;
-
-            if (isUnrecoverable) {
-                console.log(`session | Sesi tidak bisa diselamatkan (${reason || status}). Menghapus folder session...`);
-                try {
-                    if (fs.existsSync(`./session`)) {
-                        fs.rmSync(`./session`, { recursive: true, force: true });
-                        console.log(`session | Folder session berhasil dihapus.`);
-                    }
-                } catch (err) {
-                    console.error(`session | Gagal menghapus folder session:`, err.message);
-                }
-                // Memulai ulang agar muncul QR Code baru
-                console.log(`session | Memulai ulang untuk generate QR Code baru...`);
-                connectToWhatsApp();
-            } else {
-                console.log(`session | Mencoba reconnect...`);
-                connectToWhatsApp();
-            }
-
-        } else if (connection === 'open') {
-            console.log(`session Connected: ${jidDecode(sock?.user?.id)?.user}`);
+    sock.ev.process(async (ev) => {
+        // ── Connection lifecycle ────────────────────────────────────
+        if (ev["connection.update"]) {
+            handleConnectionUpdate(ev["connection.update"], sock);
         }
+
+        // ── Credential persistence ─────────────────────────────────
+        if (ev["creds.update"]) {
+            await saveCreds();
+        }
+
+        // ── Incoming messages ──────────────────────────────────────
+        const upsert = ev["messages.upsert"];
+        if (upsert) {
+            handleMessageUpsert(upsert, sock);
+        }
+
+        // ── Call rejection ─────────────────────────────────────────
+        if (ev["call"]) {
+            handleIncomingCall(ev["call"], sock, upsert);
+        }
+    });
+}
+
+// ── Event Handlers ──────────────────────────────────────────────────────────
+
+function handleConnectionUpdate(update, sock) {
+    const { connection, lastDisconnect } = update;
+    const status = lastDisconnect?.error?.output?.statusCode;
+
+    // QR code display
+    if (update.qr) {
+        qrcode.generate(update.qr, { small: true }, (qr) => console.log(qr));
     }
-    if (ev["creds.update"]) {
-      await saveCreds();
+
+    if (connection === "close") {
+        const reason = Object.entries(DisconnectReason)
+            .find((i) => i[1] === status)?.[0] || "unknown";
+
+        console.log(`session | Closed connection, status: ${reason} (${status})`);
+
+        if (lastDisconnect?.error) {
+            console.error("session | Error details:", lastDisconnect.error?.message || lastDisconnect.error);
+        }
+
+        // Sesi tidak bisa diselamatkan
+        const isUnrecoverable =
+            reason === "loggedOut" ||
+            reason === "multideviceMismatch" ||
+            status === 403 ||
+            status === 401;
+
+        if (isUnrecoverable) {
+            console.log(`session | Sesi tidak bisa diselamatkan (${reason || status}). Menghapus folder session...`);
+            try {
+                if (fs.existsSync("./session")) {
+                    fs.rmSync("./session", { recursive: true, force: true });
+                    console.log("session | Folder session berhasil dihapus.");
+                }
+            } catch (err) {
+                console.error("session | Gagal menghapus folder session:", err.message);
+            }
+            console.log("session | Memulai ulang untuk generate QR Code baru...");
+        } else {
+            console.log("session | Mencoba reconnect...");
+        }
+
+        connectToWhatsApp();
+    } else if (connection === "open") {
+        console.log(`session Connected: ${jidDecode(sock?.user?.id)?.user}`);
     }
-    
-    const upsert = ev["messages.upsert"];
-if (upsert) {
+}
+
+function handleMessageUpsert(upsert, sock) {
     const message = Messages(upsert, sock);
     if (!message) return;
 
@@ -110,51 +138,65 @@ if (upsert) {
             return;
         }
         // Jangan proses pesan append yang sudah terlalu lama (history sync)
-        const messageTimestamp = message.messageTimestamp;
         const now = Math.floor(Date.now() / 1000);
-        if (now - messageTimestamp > 60) return;
+        if (now - message.messageTimestamp > 60) return;
     }
 
     if (message.key && message.key.remoteJid === "status@broadcast") return;
+
     // fromMe diizinkan agar pemilik bot bisa memproses command
     msgHandler(upsert, sock, message);
- }
- 
- if (ev["call"]) {
-  const call = ev["call"]
-        let { id, chatId, isGroup } = call[0];
-        if (isGroup) return;
-        await sock.rejectCall(id, chatId);
-        // await sleep(3000);
-        // await sock.updateBlockStatus(chatId, "block"); // Block user
-        await sock.sendMessage(
-			chatId,
-			{
-				text: "Tidak bisa menerima panggilan suara/video.",
-			},
-			{ ephemeralExpiration: upsert?.messages[0].contextInfo?.expiration }
-		);
-    }
-  });
 }
-    connectToWhatsApp();
-// Baileys
 
-// Watch for changes in ./handler/message/index.js
-//const watchHandler = (client) => {
-  const watcher = chokidar.watch('./handler.js', {
-    ignored: /(^|[\/\\])\../, // ignore dotfiles
-    persistent: true
-  });
+async function handleIncomingCall(callEvent, sock, upsert) {
+    const { id, chatId, isGroup } = callEvent[0];
+    if (isGroup) return;
 
-  watcher.on('change', async (path) => {
-    console.log(`File ${path} has been changed`);
+    await sock.rejectCall(id, chatId);
+    await sock.sendMessage(
+        chatId,
+        { text: "Tidak bisa menerima panggilan suara/video." },
+        { ephemeralExpiration: upsert?.messages[0]?.contextInfo?.expiration }
+    );
+}
+
+// ── Start ───────────────────────────────────────────────────────────────────
+connectToWhatsApp();
+
+// ── Hot-Reload ──────────────────────────────────────────────────────────────
+// Watch handler.js for pipeline changes
+const handlerWatcher = chokidar.watch("./handler.js", {
+    ignored: /(^|[/\\])\../,
+    persistent: true,
+});
+
+handlerWatcher.on("change", async (filePath) => {
+    console.log(`[HOT-RELOAD] handler.js changed`);
     try {
-      const newHandlerModule = await import(`./handler.js?cacheBust=${Date.now()}`);
-      console.log("Updated handler module");
-      msgHandler = newHandlerModule.msgHandler;
+        const newModule = await import(`./handler.js?cacheBust=${Date.now()}`);
+        msgHandler = newModule.msgHandler;
+        console.log("[HOT-RELOAD] Handler updated ✅");
     } catch (err) {
-      console.error("Error updating handler module:", err);
+        console.error("[HOT-RELOAD] Handler reload failed ❌", err.message);
     }
-  });
-//};
+});
+
+// Watch commands/ directory for new or changed command files
+const commandWatcher = chokidar.watch(commandsDir, {
+    ignored: /(^|[/\\])(_|\.)/, // ignore dotfiles and files starting with _
+    persistent: true,
+    ignoreInitial: true,        // don't fire for files that already exist on startup
+});
+
+commandWatcher.on("add", async (filePath) => {
+    // New command file added
+    if (!filePath.endsWith(".js")) return;
+    console.log(`[HOT-RELOAD] New command file detected: ${filePath}`);
+    await reloadCommand(filePath);
+});
+
+commandWatcher.on("change", async (filePath) => {
+    // Existing command file changed
+    if (!filePath.endsWith(".js")) return;
+    await reloadCommand(filePath);
+});

@@ -9,7 +9,9 @@ const execPromise = promisify(exec);
 export default {
     name: 'toimg',
     aliases: ['toimage', 'tovideo'],
-    description: 'Mengubah stiker menjadi gambar atau video',
+    category: 'media',
+    description: '[UNSTABLE] Mengubah stiker menjadi gambar atau video',
+    usage: '!toimg (reply to a sticker)',
     async handler({ message, sock }) {
         try {
             // Check for sticker message
@@ -22,9 +24,6 @@ export default {
             }
 
             const stickerMsg = targetMsg.message.stickerMessage;
-            const isAnimated = stickerMsg.isAnimated || false;
-
-            await message.reply(isAnimated ? '⏳ Sedang mengonversi stiker ke video...' : '⏳ Sedang mengonversi stiker ke gambar...');
 
             // Download sticker
             const stream = await downloadContentFromMessage(stickerMsg, 'sticker');
@@ -32,6 +31,14 @@ export default {
             for await (const chunk of stream) {
                 buffer = Buffer.concat([buffer, chunk]);
             }
+
+            // Deteksi isAnimated secara lebih akurat dari metadata buffer jika properti bawaan tidak ada
+            const isAnimated = stickerMsg.isAnimated || buffer.includes(Buffer.from('ANIM'));
+
+            const warningText = '\n\n_⚠️ Info: Fitur ini mungkin sedang tidak stabil karena kendala server/jaringan._';
+            await message.reply(isAnimated 
+                ? '⏳ Sedang mengonversi stiker animasi ke video...' + warningText 
+                : '⏳ Sedang mengonversi stiker ke gambar...' + warningText);
 
             // Write to temp file
             const tempDir = path.resolve('./temp');
@@ -48,11 +55,11 @@ export default {
             // Convert using ffmpeg
             try {
                 if (isAnimated) {
-                    // Convert animated webp to mp4
-                    await execPromise(`ffmpeg -i "${inputPath}" -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" "${outputPath}"`);
+                    // Convert animated webp to mp4. Menambahkan analyzeduration/probesize untuk menghindari error "unspecified size"
+                    await execPromise(`ffmpeg -analyzeduration 100M -probesize 100M -i "${inputPath}" -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" "${outputPath}"`);
                 } else {
-                    // Convert static webp to jpg
-                    await execPromise(`ffmpeg -i "${inputPath}" "${outputPath}"`);
+                    // Convert static webp to jpg. Menambahkan -vframes 1 untuk menghindari crash jika ternyata ada file animasi yang lolos
+                    await execPromise(`ffmpeg -i "${inputPath}" -vframes 1 "${outputPath}"`);
                 }
 
                 const outputBuffer = fs.readFileSync(outputPath);

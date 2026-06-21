@@ -4,7 +4,9 @@ import Pino from "pino";
 export default {
     name: "resend",
     aliases: [],
+    category: "media",
     description: "Resend a quoted image or video",
+    usage: "!resend (reply to an image/video)",
     async handler({ message, sock }) {
         const quotedMsg = message.quoted ? message.quoted : message;
         const isImage = message.mtype === "image/jpeg" || message.mtype === "image/png";

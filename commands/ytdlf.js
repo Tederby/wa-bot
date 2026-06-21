@@ -26,7 +26,9 @@ import setting from "../setting.js";
 export default {
     name: "ytdlf",
     aliases: [],
+    category: "download",
     description: "Download with manual format selection",
+    usage: "!ytdlf <url>",
 
     async handler({ message, sock, args, prefix, sender }) {
         const url = args[0];

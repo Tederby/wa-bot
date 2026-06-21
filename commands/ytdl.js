@@ -12,13 +12,15 @@ import { getCachedInfo } from "../services/infoCache.js";
 import { download, formatDuration, getPlatformName, formatSize, estimateSize } from "../services/ytdlp.js";
 import { downloadQueue } from "../services/downloadQueue.js";
 import { tryDelete } from "../services/cleanup.js";
-import { isUrl } from "../lib/utils.js";
+import { isUrl, sanitizeFilename } from "../lib/utils.js";
 import setting from "../setting.js";
 
 export default {
     name: "ytdl",
     aliases: [],
+    category: "download",
     description: "Quick video/audio download (auto format)",
+    usage: "!ytdl <url>",
 
     async handler({ message, sock, args, prefix }) {
         const url = args[0];
@@ -86,7 +88,7 @@ export default {
                 await sock.sendMessage(message.chat, {
                     document: fs.readFileSync(filePath),
                     mimetype: "video/mp4",
-                    fileName: `${sanitize(title)}.mp4`,
+                    fileName: `${sanitizeFilename(title)}.mp4`,
                     caption: [
                         `🎬 *${title}*`,
                         `📏 Durasi: ${duration}`,
@@ -170,10 +172,4 @@ function estimateFromSelector(selector, formats) {
     return null;
 }
 
-/** Remove characters unsafe for filenames. */
-function sanitize(str) {
-    return str
-        .replace(/[<>:"/\\|?*\x00-\x1f]/g, "")
-        .replace(/\s+/g, "_")
-        .trim() || "download";
-}
+

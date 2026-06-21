@@ -1,7 +1,12 @@
+import 'dotenv/config';
+
 const setting = {
-    name: "Tederby18",
-    owner: "6285157729639",
-    prefixes: ["!", ".", "#", "/", "-"],
+    // ── Bot Identity ────────────────────────────────────────────────────
+    name: process.env.BOT_NAME || "Tederby18",
+    owner: process.env.OWNER_NUMBER || "6287825136146",
+    prefixes: (process.env.PREFIXES || "!.#/-").split(""),
+
+    // ── yt-dlp ──────────────────────────────────────────────────────────
     ytdlp: {
         tempDir: "./temp",
         maxFileSize: 64 * 1024 * 1024,           // 64MB (WhatsApp video limit)
@@ -19,7 +24,10 @@ const setting = {
         ],
         processTimeout: 5 * 60 * 1000,            // 5 menit timeout
         purgeOnStartup: true,
-    }
+    },
+
+    // ── Spam Filter ─────────────────────────────────────────────────────
+    spamDelay: Number(process.env.SPAM_DELAY) || 5000, // ms cooldown per chat
 };
 
 export default setting;

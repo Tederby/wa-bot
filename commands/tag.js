@@ -3,7 +3,9 @@ import { fetchDanbooruPost } from "../lib/danbooru.js";
 export default {
     name: "tag",
     aliases: ["tags"],
+    category: "anime",
     description: "Ambil list tag dari gambar Danbooru yang di-reply",
+    usage: "!tag (reply to a Danbooru post)",
     async handler({ message, sock }) {
         if (!message.quoted) {
             await message.reply("❌ Kamu harus me-reply gambar Danbooru atau pesan peringatan dari bot untuk menggunakan command ini.");

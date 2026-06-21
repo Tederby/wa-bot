@@ -1,27 +1,43 @@
 /**
  * Command & Reply Handler Registry
  *
- * - Commands are registered by name + aliases → looked up by exact match.
+ * - Commands are auto-loaded from every .js file in this directory (except _registry.js).
+ * - Each command module must `export default { name, handler, ... }`.
+ * - Supports hot-reload: `reloadCommand(filePath)` re-imports and re-registers
+ *   a single command without touching other state (reply handlers, etc.).
  * - Reply handlers are registered per bot-message stanzaId so that follow-up
  *   replies (e.g. ytdlf format selection) can be routed back to the originating command.
  */
 
-import ping from "./ping.js";
-import say from "./say.js";
-import resend from "./resend.js";
-import ytdl from "./ytdl.js";
-import ytdlf from "./ytdlf.js";
-import danbooru from "./danbooru.js";
-import tag from "./tag.js";
-import menu from "./menu.js";
-import sticker from "./sticker.js";
-import toimg from "./toimg.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath, pathToFileURL } from "url";
+import { color } from "../lib/utils.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ── Command Registry ────────────────────────────────────────────────────────
 
 const commands = new Map();
 
+/**
+ * Register a command by name + aliases.
+ * If a command with the same name was already registered, its old aliases
+ * are cleaned up first to avoid ghost entries.
+ */
 function register(cmd) {
+    // Clean up old aliases if re-registering the same command name
+    const existing = commands.get(cmd.name);
+    if (existing && existing.aliases) {
+        for (const alias of existing.aliases) {
+            // Only delete if the alias still points to the OLD command
+            if (commands.get(alias) === existing) {
+                commands.delete(alias);
+            }
+        }
+    }
+
     commands.set(cmd.name, cmd);
     if (cmd.aliases) {
         for (const alias of cmd.aliases) {
@@ -30,7 +46,109 @@ function register(cmd) {
     }
 }
 
-[ping, say, resend, ytdl, ytdlf, danbooru, tag, menu, sticker, toimg].forEach(register);
+/**
+ * Auto-load all command modules from the current directory.
+ * Skips files starting with "_" (like this registry file).
+ */
+async function loadCommands() {
+    const files = fs.readdirSync(__dirname)
+        .filter((f) => f.endsWith(".js") && !f.startsWith("_"));
+
+    for (const file of files) {
+        await loadSingleFile(file);
+    }
+
+    const unique = [...new Set(commands.values())];
+    console.log(
+        color("[REGISTRY]"),
+        `Loaded ${unique.length} command(s): ${unique.map((c) => c.name).join(", ")}`
+    );
+}
+
+/**
+ * Load (or reload) a single command file.
+ * Uses cache-busting to force Node.js to re-evaluate the module.
+ *
+ * @param {string} file - Filename (e.g. "ping.js")
+ * @returns {Promise<string|null>} Command name if successful, null if failed
+ */
+async function loadSingleFile(file) {
+    try {
+        const absPath = path.join(__dirname, file);
+        // Cache-bust: append timestamp query so Node doesn't serve the old module
+        const fileUrl = pathToFileURL(absPath).href + `?t=${Date.now()}`;
+        const mod = await import(fileUrl);
+        const cmd = mod.default;
+
+        if (cmd && cmd.name && typeof cmd.handler === "function") {
+            register(cmd);
+            return cmd.name;
+        } else {
+            console.warn(color("[REGISTRY]", "yellow"), `Skipped ${file}: missing name or handler`);
+            return null;
+        }
+    } catch (err) {
+        console.error(color("[REGISTRY]", "red"), `Failed to load ${file}:`, err.message);
+        return null;
+    }
+}
+
+// Load on import
+await loadCommands();
+
+// ── Hot-Reload API ──────────────────────────────────────────────────────────
+
+/**
+ * Reload a single command file by its absolute path.
+ * Called by the file watcher in index.js when a command file changes.
+ *
+ * @param {string} absPath - Absolute path to the .js file
+ * @returns {Promise<boolean>} true if reload succeeded
+ */
+export async function reloadCommand(absPath) {
+    const file = path.basename(absPath);
+
+    // Don't reload this registry file itself
+    if (file.startsWith("_") || !file.endsWith(".js")) return false;
+
+    const cmdName = await loadSingleFile(file);
+    if (cmdName) {
+        console.log(
+            color("[HOT-RELOAD]", "yellow"),
+            `Command "${cmdName}" reloaded from ${file}`
+        );
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Unregister a command by filename.
+ * Called when a command file is deleted.
+ *
+ * @param {string} absPath - Absolute path to the removed .js file
+ */
+export function unregisterByFile(absPath) {
+    const file = path.basename(absPath);
+    if (file.startsWith("_") || !file.endsWith(".js")) return;
+
+    // Find the command whose source file matches
+    // We need to check all unique commands
+    for (const cmd of new Set(commands.values())) {
+        // We don't track source files, so we'll just log a warning
+        // Commands will be cleaned up on next full restart
+    }
+
+    console.log(
+        color("[HOT-RELOAD]", "yellow"),
+        `File ${file} removed — command will be unavailable after restart`
+    );
+}
+
+/** The absolute path to the commands directory (for watchers). */
+export const commandsDir = __dirname;
+
+// ── Command Lookup ──────────────────────────────────────────────────────────
 
 /**
  * Look up a command by its exact name or alias.

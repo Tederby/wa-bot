@@ -5,7 +5,9 @@ import setting from '../setting.js';
 export default {
     name: 'sticker',
     aliases: ['s', 'stiker'],
+    category: 'media',
     description: 'Membuat stiker dari gambar atau video pendek',
+    usage: '!s (send/reply to an image or short video)',
     async handler({ message, sock }) {
         try {
             // Check original message media

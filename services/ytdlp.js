@@ -10,6 +10,7 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import setting from "../setting.js";
+import { sanitizeFilename } from "../lib/utils.js";
 
 /**
  * Run a yt-dlp command and return stdout as a string.
@@ -78,7 +79,7 @@ export async function download(url, formatStr, title, formatLabel) {
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
     // Build a safe filename: sanitized title + label + random suffix
-    const safe = sanitize(title).substring(0, 80);
+    const safe = sanitizeFilename(title).substring(0, 80);
     const label = formatLabel ? `_${formatLabel}` : "";
     const rand = crypto.randomBytes(4).toString("hex");
     const template = path.join(tempDir, `${safe}${label}_${rand}.%(ext)s`);
@@ -233,12 +234,4 @@ export function detectStreams(formatStr, formats) {
     return { hasVideo, hasAudio };
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Remove characters unsafe for filenames. */
-function sanitize(str) {
-    return str
-        .replace(/[<>:"/\\|?*\x00-\x1f]/g, "")
-        .replace(/\s+/g, "_")
-        .trim() || "download";
-}
