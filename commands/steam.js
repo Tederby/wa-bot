@@ -185,6 +185,7 @@ async function sendSteamDetail(appId, message, sock) {
         const developers = game.developers ? game.developers.join(", ") : "N/A";
         const publishers = game.publishers ? game.publishers.join(", ") : "N/A";
         const metacritic = game.metacritic ? game.metacritic.score : "N/A";
+        const supportedLanguages = game.supported_languages ? game.supported_languages.replace(/<[^>]*>?/gm, '') : "N/A";
 
         let priceText = "Gratis";
         if (game.is_free) {
@@ -205,7 +206,8 @@ async function sendSteamDetail(appId, message, sock) {
         const genres = game.genres ? game.genres.map(g => g.description).join(", ") : "N/A";
         const headerImage = game.header_image || game.capsule_image;
 
-        let captionText = `🎮 *${name}*\n\n`;
+        let captionText = `🎮 *${name}*\n`;
+        captionText += `🔗 *Link Steam:* https://store.steampowered.com/app/${appId}\n\n`;
         captionText += `🏷️ *Genre:* ${genres}\n`;
         captionText += `📅 *Rilis:* ${releaseDate}\n`;
         captionText += `🛠️ *Developer:* ${developers}\n`;
@@ -213,7 +215,7 @@ async function sendSteamDetail(appId, message, sock) {
         captionText += `🌟 *Metacritic:* ${metacritic}\n\n`;
         captionText += `💰 *Harga:* ${priceText}\n\n`;
         captionText += `📝 *Deskripsi:*\n${shortDesc}\n\n`;
-        captionText += `🔗 *Link Steam:* https://store.steampowered.com/app/${appId}`;
+        captionText += `🌐 *Bahasa didukung:*\n${supportedLanguages}`;
 
         if (headerImage) {
             await sock.sendMessage(

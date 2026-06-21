@@ -205,7 +205,8 @@ async function sendAnimeDetail(anime, message, sock) {
         imageUrl = anime.images.jpg.image_url;
     }
 
-    let captionText = `🎌 *${title}*${titleEng}\n\n`;
+    let captionText = `🎌 *${title}*${titleEng}\n`;
+    captionText += `🔗 *MyAnimeList:* ${url}\n\n`;
     captionText += `⭐ *Score:* ${score}\n`;
     captionText += `🏆 *Rank:* #${rank} | 📈 *Popularity:* #${popularity}\n`;
     captionText += `📺 *Type:* ${type}\n`;
@@ -216,8 +217,7 @@ async function sendAnimeDetail(anime, message, sock) {
     captionText += `⏱️ *Duration:* ${duration}\n`;
     captionText += `⚠️ *Rating:* ${rating}\n`;
     captionText += `🎭 *Genres:* ${genres}\n\n`;
-    captionText += `📝 *Synopsis:*\n${synopsis}\n\n`;
-    captionText += `🔗 *MyAnimeList:* ${url}`;
+    captionText += `📝 *Synopsis:*\n${synopsis}`;
 
     if (imageUrl) {
         await sock.sendMessage(

@@ -201,7 +201,8 @@ async function sendMangaDetail(manga, message, sock) {
         imageUrl = manga.images.jpg.image_url;
     }
 
-    let captionText = `📚 *${title}*${titleEng}\n\n`;
+    let captionText = `📚 *${title}*${titleEng}\n`;
+    captionText += `🔗 *MyAnimeList:* ${url}\n\n`;
     captionText += `⭐ *Score:* ${score}\n`;
     captionText += `🏆 *Rank:* #${rank} | 📈 *Popularity:* #${popularity}\n`;
     captionText += `📖 *Type:* ${type}\n`;
@@ -209,8 +210,7 @@ async function sendMangaDetail(manga, message, sock) {
     captionText += `⏳ *Status:* ${status}\n`;
     captionText += `✍️ *Author:* ${authors}\n`;
     captionText += `🎭 *Genres:* ${genres}\n\n`;
-    captionText += `📝 *Synopsis:*\n${synopsis}\n\n`;
-    captionText += `🔗 *MyAnimeList:* ${url}`;
+    captionText += `📝 *Synopsis:*\n${synopsis}`;
 
     if (imageUrl) {
         await sock.sendMessage(
