@@ -20,7 +20,7 @@ export default {
             return await message.reply('❌ URL tidak valid. Pastikan menyertakan http:// atau https://');
         }
 
-        await message.reply('⏳ Sedang memproses URL...');
+        const update = await message.replyUpdate('⏳ Sedang memproses URL...');
 
         let contentType = 'application/octet-stream';
         let contentLength = 0;
@@ -39,7 +39,7 @@ export default {
             // Limit to ~50MB (WhatsApp document limit usually 100MB, but let's be safe for bot's memory/timeout)
             const MAX_SIZE_MB = 100;
             if (contentLength > MAX_SIZE_MB * 1024 * 1024) {
-                return await message.reply(`❌ File terlalu besar (${(contentLength / 1024 / 1024).toFixed(2)} MB). Batas maksimal adalah ${MAX_SIZE_MB} MB.`);
+                return await update(`❌ File terlalu besar (${(contentLength / 1024 / 1024).toFixed(2)} MB). Batas maksimal adalah ${MAX_SIZE_MB} MB.`);
             }
 
             // Try getting from Content-Disposition
@@ -68,7 +68,7 @@ export default {
             }
         }
 
-        await message.reply(`📥 Mulai mengunduh file:\n*Nama:* ${fileName}\n*Ukuran:* ${contentLength ? (contentLength / 1024 / 1024).toFixed(2) + ' MB' : 'Tidak diketahui'}\n\nHarap tunggu sebentar...`);
+        await update(`📥 Mulai mengunduh file:\n*Nama:* ${fileName}\n*Ukuran:* ${contentLength ? (contentLength / 1024 / 1024).toFixed(2) + ' MB' : 'Tidak diketahui'}\n\nHarap tunggu sebentar...`);
 
         try {
             // Send the document directly using the URL (Baileys handles the streaming download)
@@ -77,10 +77,12 @@ export default {
                 mimetype: contentType,
                 fileName: fileName
             }, { quoted: message });
+            
+            await update(`✅ Berhasil mengirim file *${fileName}*`);
 
         } catch (error) {
             console.error('[ERROR DOWNLOAD]', error);
-            await message.reply('❌ Terjadi kesalahan saat mengunduh atau mengirim file. Pastikan URL dapat diakses secara publik.');
+            await update('❌ Terjadi kesalahan saat mengunduh atau mengirim file. Pastikan URL dapat diakses secara publik.');
         }
     }
 };
