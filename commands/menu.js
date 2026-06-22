@@ -33,8 +33,24 @@ export default {
             groups.get(cat).push(cmd);
         }
 
-        let menuText = `*👾 ${setting.name || "Bot Menu"} 👾*\n`;
-        menuText += `_Prefix: ${setting.prefixes.join(" ")}_\n\n`;
+        const formatUptime = (seconds) => {
+            const d = Math.floor(seconds / (3600 * 24));
+            const h = Math.floor(seconds % (3600 * 24) / 3600);
+            const m = Math.floor(seconds % 3600 / 60);
+            const s = Math.floor(seconds % 60);
+            const parts = [];
+            if (d > 0) parts.push(`${d}d`);
+            if (h > 0) parts.push(`${h}h`);
+            if (m > 0) parts.push(`${m}m`);
+            if (s > 0 || parts.length === 0) parts.push(`${s}s`);
+            return parts.join(" ");
+        };
+
+        const uptimeStr = formatUptime(process.uptime());
+        let menuText = `╭━━━〔 👾 ${setting.name || "Bot Menu"} 👾 〕━━━\n`;
+        menuText += `┃ 💻 Prefix : [ ${setting.prefixes.join(" / ")} ]\n`;
+        menuText += `┃ ⏱️ Uptime : ${uptimeStr}\n`;
+        menuText += `╰━━━━━━━━━━━━━━━━━━━━\n\n`;
 
         // Sort categories by CATEGORY_LABELS order, unknowns at end
         const orderedKeys = [...Object.keys(CATEGORY_LABELS)];
@@ -47,22 +63,24 @@ export default {
         for (const cat of allKeys) {
             const label = CATEGORY_LABELS[cat] || DEFAULT_CATEGORY;
             const cmds = groups.get(cat);
-            menuText += `━━ ${label} ━━\n`;
+            menuText += `╭───「 ${label} 」\n`;
 
             for (const cmd of cmds) {
-                menuText += `*${prefix}${cmd.name}*`;
+                let cmdNames = [`*${cmd.name}*`];
                 if (cmd.aliases && cmd.aliases.length > 0) {
-                    menuText += ` _(${cmd.aliases.join(", ")})_`;
+                    cmdNames.push(...cmd.aliases.map(a => `*${a}*`));
                 }
-                menuText += `\n`;
+                menuText += `│ ⋄ ${cmdNames.join(" / ")}\n`;
                 if (cmd.description) {
-                    menuText += `┗ ${cmd.description}\n`;
+                    menuText += `│   └ ${cmd.description}\n`;
+                } else {
+                    menuText += `│   └ (No description)\n`;
                 }
             }
-            menuText += `\n`;
+            menuText += `╰──────────────\n\n`;
         }
 
-        menuText += `*Powered by Baileys & Node.js*`;
+        menuText += `⚙️ _Powered by Baileys & Node.js_`;
 
         await message.reply(menuText.trim());
     }
