@@ -5,9 +5,8 @@ import { registerReplyHandler, deleteReplyHandler } from "./_registry.js";
 const ITEMS_PER_PAGE = 5;
 
 function generatePaginator(page, totalPages) {
-    if (totalPages <= 1) return `━━━━━━━━━━━━━━━━`;
+    if (totalPages <= 1) return `[ 📄 Page 1/1 ] ─── ━━━━━━━━━━━━━━━━`;
     let items = [];
-    if (page > 0) items.push("«");
     let startP = Math.max(0, page - 2);
     let endP = Math.min(totalPages - 1, page + 2);
     for (let i = startP; i <= endP; i++) {
@@ -15,9 +14,8 @@ function generatePaginator(page, totalPages) {
         if (i === page) items.push(`*${pNum}*`);
         else items.push(`${pNum}`);
     }
-    if (page < totalPages - 1) items.push("»");
     let bar = items.join(" ─ ");
-    return `━━ ${bar} ━━`;
+    return `[ 📄 Page ${page + 1}/${totalPages} ] ─── « ─ ${bar} ─ »`;
 }
 
 function generateListText(results, page, query) {
@@ -26,20 +24,19 @@ function generateListText(results, page, query) {
     const end = start + ITEMS_PER_PAGE;
     const currentItems = results.slice(start, end);
 
-    let text = `📚 *MANGA SEARCH*\n`;
-    text += `━━━━━━━━━━━━━━━━\n`;
-    text += `🔍 *Query:* ${query}\n`;
-    text += `📄 *Page:* ${page + 1}/${totalPages}\n`;
-    text += `━━━━━━━━━━━━━━━━\n\n`;
+    let text = `╭━━━〔 📖 MANGA SEARCH 〕━━━\n`;
+    text += `┃ 🔍 Query : ${query}\n`;
+    text += `╰━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
     currentItems.forEach((manga, index) => {
-        text += `*[${start + index + 1}]. ${manga.title}*\n`;
-        text += `↳ 📖 Type: ${manga.type || "N/A"} | ⭐ ${manga.score || "N/A"} | 📝 Ch: ${manga.chapters || "N/A"}\n\n`;
+        let year = manga.published?.prop?.from?.year || "N/A";
+        text += `╭───「 ${start + index + 1}. ${manga.title} 」\n`;
+        text += `│ 📚 ${manga.type || "N/A"} | ⭐ ${manga.score || "N/A"} | 📖 ${manga.chapters || "?"} Chaps | 📅 ${year}\n`;
+        text += `╰──────────────\n\n`;
     });
 
     text += generatePaginator(page, totalPages) + "\n\n";
-    text += `_Reply angka (1, 2, 3, ...) untuk "memilih"._\n`;
-    text += `_"n" untuk next, "b" untuk back._`;
+    text += `💡 _Reply angka (1-${currentItems.length}) untuk memilih. Ketik "n" next, "b" back._`;
 
     return text.trim();
 }
