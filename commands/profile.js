@@ -29,17 +29,18 @@ export default {
 
             const normalizedTarget = jidNormalizedUser(target);
             const targetBaseId = target.split(':')[0].split('@')[0];
-            
+
             // Nama fallback jika target bukan pengirim pesan
             if (target !== sender) {
-                targetName = `User`;
+                // targetName = 'User'; // Gunakan ini lagi jika sudah menggunakan memory store
+                targetName = null; // Kita tidak punya pushname orang lain tanpa memory store
             }
 
             // 2. Cek Status Owner
             const botBaseId = sock.user.id.split(':')[0].split('@')[0];
-            const isTargetOwner = 
-                setting.owner.includes(targetBaseId) || 
-                ownerNumbers.includes(normalizedTarget) || 
+            const isTargetOwner =
+                setting.owner.includes(targetBaseId) ||
+                ownerNumbers.includes(normalizedTarget) ||
                 targetBaseId === botBaseId;
 
             // 3. Cek Status Admin (jika dieksekusi di grup)
@@ -62,10 +63,15 @@ export default {
 
             // 5. Susun Tampilan Profil
             let caption = `*PROFILE INFO*\n\n`;
-            caption += `👤 *Nama:* ${targetName}\n`;
+
+            // Nama hanya ditampilkan jika command dipakai untuk diri sendiri (karena kita punya pushname-nya)
+            if (targetName) {
+                caption += `👤 *Nama:* ${targetName}\n`;
+            }
+
             caption += `🏷️ *User:* @${targetBaseId}\n`;
             caption += `👑 *Owner:* ${isTargetOwner ? "Ya" : "Tidak"}\n`;
-            
+
             if (isGroup) {
                 caption += `🛡️ *Admin Grup:* ${isTargetAdmin ? "Ya" : "Tidak"}\n`;
             }
@@ -75,10 +81,10 @@ export default {
             // 6. Kirim Pesan dengan Mention
             await sock.sendMessage(
                 message.chat,
-                { 
-                    image: { url: placeholderImageUrl }, 
+                {
+                    image: { url: placeholderImageUrl },
                     caption: caption,
-                    mentions: [normalizedTarget] 
+                    mentions: [normalizedTarget]
                 },
                 { quoted: message }
             );
