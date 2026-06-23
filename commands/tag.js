@@ -14,8 +14,8 @@ export default {
 
         const quotedText = message.quoted.text || message.quoted.caption || "";
         
-        // Cari ID post di teks menggunakan regex
-        const idMatch = quotedText.match(/post(?:[ :*]+)?(\d+)/i);
+        // Cari ID post di teks (terutama dari URL Post Link, atau format lama)
+        const idMatch = quotedText.match(/danbooru\.donmai\.us\/posts\/(\d+)/i) || quotedText.match(/post(?:[ :*]+)?(\d+)/i);
         
         if (!idMatch) {
             await message.reply("❌ Tidak dapat menemukan ID Danbooru di pesan yang di-reply.");
