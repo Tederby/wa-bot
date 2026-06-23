@@ -97,9 +97,9 @@ export default {
             text += `│ ⋄ Bot    : ${formatBytes(memUsage.rss)} (RSS) | ${formatBytes(memUsage.heapUsed)} (Heap)\n`;
             text += `╰──────────────\n\n`;
 
-            text += `╭───`;
-            text += `│ Gunakan \`${prefix}saran\` atau \`${prefix}report\``;
-            text += `│ jika ada error`;
+            text += `╭───\n`;
+            text += `│ Gunakan \`${prefix}saran\` atau \`${prefix}report\`\n`;
+            text += `│ jika ada error\n`;
             text += `╰──────────────`;
 
             await message.reply(text);
