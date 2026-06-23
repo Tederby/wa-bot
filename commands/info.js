@@ -97,9 +97,9 @@ export default {
             text += `│ ⋄ Bot    : ${formatBytes(memUsage.rss)} (RSS) | ${formatBytes(memUsage.heapUsed)} (Heap)\n`;
             text += `╰──────────────\n\n`;
 
-            text += `╭───\n`;
-            text += `│ Gunakan \`${prefix}saran\` atau \`${prefix}report\`\n`;
-            text += `│ jika ada error\n`;
+            text += `╭───「 📢 Update & Info 」\n`;
+            text += `│ ⋄ Channel : https://whatsapp.com/channel/0029VbB1Xqv1noz03aqgWx0s\n`;
+            text += `│ ⋄ Error   : \`${prefix}saran\` / \`${prefix}report\`\n`;
             text += `╰──────────────`;
 
             await message.reply(text);
