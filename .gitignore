@@ -6,4 +6,6 @@ package-lock.json
 .env
 database.json
 database_reminders.json
+database_feedbacks.json
+database_reports.json
 .agents/*
