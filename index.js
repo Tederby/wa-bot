@@ -43,6 +43,9 @@ const logger = Pino({ level: "silent" });
 
 // ── Connection ──────────────────────────────────────────────────────────────
 
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
 async function connectToWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState("./session");
   const { version } = await fetchLatestBaileysVersion();
@@ -121,22 +124,30 @@ function handleConnectionUpdate(update, sock) {
       status === 401;
 
     if (isUnrecoverable) {
-      console.log(`session | Sesi tidak bisa diselamatkan (${reason || status}). Menghapus folder session...`);
-      try {
-        if (fs.existsSync("./session")) {
-          fs.rmSync("./session", { recursive: true, force: true });
-          console.log("session | Folder session berhasil dihapus.");
+      reconnectAttempts++;
+      if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        console.log(`session | Sesi gagal setelah ${MAX_RECONNECT_ATTEMPTS} percobaan (${reason || status}). Menghapus folder session...`);
+        try {
+          if (fs.existsSync("./session")) {
+            fs.rmSync("./session", { recursive: true, force: true });
+            console.log("session | Folder session berhasil dihapus.");
+          }
+        } catch (err) {
+          console.error("session | Gagal menghapus folder session:", err.message);
         }
-      } catch (err) {
-        console.error("session | Gagal menghapus folder session:", err.message);
+        console.log("session | Memulai ulang untuk generate QR Code baru...");
+        reconnectAttempts = 0;
+      } else {
+        console.log(`session | Sesi terputus (${reason || status}). Mencoba reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
       }
-      console.log("session | Memulai ulang untuk generate QR Code baru...");
     } else {
-      console.log("session | Mencoba reconnect...");
+      console.log("session | Mencoba reconnect dalam 5 detik...");
     }
 
-    connectToWhatsApp();
+    // Beri jeda 5 detik sebelum reconnect agar tidak spam/overload saat internet VPS mati
+    setTimeout(connectToWhatsApp, 5000);
   } else if (connection === "open") {
+    reconnectAttempts = 0;
     console.log(`session Connected: ${jidDecode(sock?.user?.id)?.user}`);
   }
 }
