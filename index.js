@@ -177,19 +177,16 @@ function handleConnectionUpdate(update, sock) {
   const status = lastDisconnect?.error?.output?.statusCode;
 
   // ── QR Code ─────────────────────────────────────────────────
-  // Suppress QR di log agar bersih. Gunakan SHOW_QR=true untuk menampilkan.
   if (update.qr) {
     qrCount++;
     if (qrCount >= MAX_QR_ATTEMPTS) {
       return suspendProgram(
         `QR code sudah di-generate ${qrCount}x tanpa di-scan. ` +
-        `Untuk scan ulang: SHOW_QR=true pm2 restart wa-bot`
+        `Jalankan 'pm2 restart wa-bot' untuk mencoba lagi.`
       );
     }
-    console.log(`session | QR Code tersedia (${qrCount}/${MAX_QR_ATTEMPTS}). Gunakan SHOW_QR=true untuk menampilkan.`);
-    if (process.env.SHOW_QR === "true") {
-      qrcode.generate(update.qr, { small: true }, (qr) => console.log(qr));
-    }
+    console.log(`session | QR Code (${qrCount}/${MAX_QR_ATTEMPTS}):`);
+    qrcode.generate(update.qr, { small: true }, (qr) => console.log(qr));
   }
 
   // ── Connection Close ────────────────────────────────────────
@@ -233,7 +230,7 @@ function handleConnectionUpdate(update, sock) {
           saveCycleCount(0);
           return suspendProgram(
             "Session dihapus karena gagal reconnect berulang kali. " +
-            "Untuk scan QR baru: SHOW_QR=true pm2 restart wa-bot"
+            "Jalankan 'pm2 restart wa-bot' untuk scan QR baru."
           );
         }
 
